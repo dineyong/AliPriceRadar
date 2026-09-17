@@ -1,0 +1,29 @@
+{
+  "name": "ali-price-radar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AliExpress price history collection proof of concept",
+  "type": "module",
+  "engines": {
+    "node": "24.15.0",
+    "npm": ">=11.0.0 <12"
+  },
+  "scripts": {
+    "db:migrate": "tsx src/commands/migrate.ts",
+    "api:probe": "tsx src/commands/probe-api.ts",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "dotenv": "17.2.2",
+    "pg": "8.16.3",
+    "zod": "4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.1",
+    "@types/pg": "8.15.5",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2",
+    "vitest": "5.0.1"
+  }
+}

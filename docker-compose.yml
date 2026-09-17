@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: aliprice
+      POSTGRES_PASSWORD: aliprice
+      POSTGRES_DB: aliprice
+    ports:
+      - "5432:5432"
+    volumes:
+      - aliprice_postgres:/var/lib/postgresql/data
+
+volumes:
+  aliprice_postgres:
+

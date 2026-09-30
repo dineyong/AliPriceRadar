@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "playwright";
-import { detectPromotionMarkers, parsePriceToken } from "./evidence.js";
+import { chromium, type Page } from "playwright";
+import { classifyDisplayPrice, classifyPageKind, detectPromotionMarkers, parsePriceToken } from "./evidence.js";
 
 export interface AuditProduct {
   productId: string;
@@ -36,6 +36,74 @@ export async function loadAuditProducts(filePath: string): Promise<AuditProduct[
   return products;
 }
 
+export async function extractPageEvidence(page: Page) {
+  const pageData = await page.evaluate(() => {
+    const bodyText = document.body?.innerText ?? "";
+    const productPanel = document.querySelector(".pdp-info-right");
+    const mainText = (productPanel as HTMLElement | null)?.innerText ?? "";
+    const allPagePriceTokens = [
+      ...new Set(bodyText.match(/(?:₩|KRW\s*|US\s*\$)\s*[\d][\d,.]*/gi) ?? [])
+    ].slice(0, 30);
+    const mainPriceTokens = [
+      ...new Set(mainText.match(/(?:₩|KRW\s*|US\s*\$)\s*[\d][\d,.]*/gi) ?? [])
+    ].slice(0, 30);
+    const structuredOffers: StructuredOffer[] = [];
+    for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+      try {
+        const parsed = JSON.parse(script.textContent ?? "null") as Record<string, unknown>;
+        const candidates = Array.isArray(parsed) ? parsed : [parsed];
+        for (const candidate of candidates) {
+          const offer = (candidate as Record<string, unknown>)?.offers;
+          const offers = Array.isArray(offer) ? offer : offer ? [offer] : [];
+          for (const item of offers) {
+            if (item && typeof item === "object") structuredOffers.push(item as StructuredOffer);
+          }
+        }
+      } catch {
+        // Malformed third-party JSON-LD remains available in the HTML snapshot.
+      }
+    }
+    return {
+      hasProductPanel: Boolean(productPanel),
+      title: productPanel?.querySelector('[data-pl="product-title"]')?.textContent?.trim()
+        || document.querySelector("h1")?.textContent?.trim()
+        || document.title,
+      bodyText: bodyText.slice(0, 100_000),
+      mainText: mainText.slice(0, 20_000),
+      allPagePriceTokens,
+      mainPriceTokens,
+      displayedCurrentPrice: (productPanel?.querySelector('[class*="price-kr--current--"]') as HTMLElement | null)?.innerText?.trim() || null,
+      displayedOriginalPrice: (productPanel?.querySelector('[class*="price-kr--originWrap--"]') as HTMLElement | null)?.innerText?.trim() || null,
+      pricePromotionText: (productPanel?.querySelector('[class*="pricePromotionInfo"]') as HTMLElement | null)?.innerText?.trim() || null,
+      soldText: (productPanel?.querySelector('[class*="reviewer--sold"]') as HTMLElement | null)?.innerText?.trim() || null,
+      structuredOffers,
+      meta: {
+        ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content"),
+        ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content"),
+        productPrice: document.querySelector('meta[property="product:price:amount"]')?.getAttribute("content"),
+        productCurrency: document.querySelector('meta[property="product:price:currency"]')?.getAttribute("content")
+      }
+    };
+  });
+
+  const pageKind = classifyPageKind(pageData);
+  const displayedCurrentPrice = pageData.displayedCurrentPrice ? parsePriceToken(pageData.displayedCurrentPrice) : null;
+  return {
+    ...pageData,
+    pageKind,
+    allPagePrices: pageData.allPagePriceTokens.map(parsePriceToken),
+    mainPrices: pageData.mainPriceTokens.map(parsePriceToken),
+    displayedCurrentPrice,
+    displayedOriginalPrice: pageData.displayedOriginalPrice ? parsePriceToken(pageData.displayedOriginalPrice) : null,
+    promotions: detectPromotionMarkers(pageData.mainText),
+    priceClassification: classifyDisplayPrice({
+      pageKind,
+      currentPrice: displayedCurrentPrice,
+      promotionText: pageData.pricePromotionText
+    })
+  };
+}
+
 export async function auditProducts(products: AuditProduct[], outputRoot: string) {
   await mkdir(outputRoot, { recursive: true });
   const browser = await chromium.launch({ headless: true });
@@ -54,54 +122,30 @@ export async function auditProducts(products: AuditProduct[], outputRoot: string
       try {
         const response = await page.goto(product.url, { waitUntil: "domcontentloaded", timeout: 45_000 });
         await page.waitForTimeout(4_000);
-        const pageData = await page.evaluate(() => {
-          const bodyText = document.body?.innerText ?? "";
-          const priceMatches = bodyText.match(/(?:₩|KRW\s*|US\s*\$)\s*[\d][\d,.]*/gi) ?? [];
-          const structuredOffers: StructuredOffer[] = [];
-          for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
-            try {
-              const parsed = JSON.parse(script.textContent ?? "null") as Record<string, unknown>;
-              const candidates = Array.isArray(parsed) ? parsed : [parsed];
-              for (const candidate of candidates) {
-                const offer = (candidate as Record<string, unknown>)?.offers;
-                const offers = Array.isArray(offer) ? offer : offer ? [offer] : [];
-                for (const item of offers) {
-                  if (item && typeof item === "object") structuredOffers.push(item as StructuredOffer);
-                }
-              }
-            } catch {
-              // Malformed third-party JSON-LD is recorded through the HTML snapshot instead.
-            }
-          }
-          return {
-            title: document.querySelector("h1")?.textContent?.trim() || document.title,
-            bodyText: bodyText.slice(0, 100_000),
-            priceTokens: [...new Set(priceMatches)].slice(0, 30),
-            structuredOffers,
-            meta: {
-              ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content"),
-              ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content"),
-              productPrice: document.querySelector('meta[property="product:price:amount"]')?.getAttribute("content"),
-              productCurrency: document.querySelector('meta[property="product:price:currency"]')?.getAttribute("content")
-            }
-          };
-        });
+        const pageData = await extractPageEvidence(page);
         const htmlPath = path.join(outputRoot, `${product.productId}.html`);
         const screenshotPath = path.join(outputRoot, `${product.productId}.png`);
         await writeFile(htmlPath, await page.content(), "utf8");
         await page.screenshot({ path: screenshotPath, fullPage: true });
-        const blocked = /captcha|verify you are human|보안\s*확인|로봇이\s*아닙니다/i.test(pageData.bodyText);
         results.push({
           product,
           observedAt: startedAt.toISOString(),
           finalUrl: page.url(),
           httpStatus: response?.status() ?? null,
           title: pageData.title,
-          prices: pageData.priceTokens.map(parsePriceToken),
+          pageKind: pageData.pageKind,
+          mainProduct: {
+            currentPrice: pageData.displayedCurrentPrice,
+            originalPrice: pageData.displayedOriginalPrice,
+            priceCandidates: pageData.mainPrices,
+            pricePromotionText: pageData.pricePromotionText,
+            soldText: pageData.soldText,
+            promotions: pageData.promotions,
+            priceClassification: pageData.priceClassification
+          },
+          allPagePrices: pageData.allPagePrices,
           structuredOffers: pageData.structuredOffers,
           meta: pageData.meta,
-          promotions: detectPromotionMarkers(pageData.bodyText),
-          blocked,
           artifacts: { htmlPath, screenshotPath }
         });
       } catch (error) {
@@ -123,4 +167,3 @@ export async function auditProducts(products: AuditProduct[], outputRoot: string
   await writeFile(reportPath, JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2), "utf8");
   return { reportPath, results };
 }
-

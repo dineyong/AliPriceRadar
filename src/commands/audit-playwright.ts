@@ -10,10 +10,11 @@ const report = await auditProducts(products, outputRoot);
 console.table(
   report.results.map((result) => ({
     productId: (result.product as { productId: string }).productId,
-    status: result.error ? "error" : result.blocked ? "blocked" : "observed",
-    priceCandidates: Array.isArray(result.prices) ? result.prices.length : 0,
+    status: result.error ? "error" : result.pageKind,
+    priceCandidates: Array.isArray((result.mainProduct as { priceCandidates?: unknown[] } | undefined)?.priceCandidates)
+      ? (result.mainProduct as { priceCandidates: unknown[] }).priceCandidates.length
+      : 0,
     title: result.title ?? ""
   }))
 );
 console.log(`Audit report: ${report.reportPath}`);
-

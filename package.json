@@ -15,6 +15,7 @@
     "api:probe": "tsx src/commands/probe-api.ts",
     "playwright:install": "playwright install chromium",
     "audit:playwright": "tsx src/commands/audit-playwright.ts",
+    "audit:reanalyze": "tsx src/commands/reanalyze-playwright.ts",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },

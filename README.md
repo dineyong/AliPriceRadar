@@ -75,7 +75,15 @@ Then audit the five public-search samples in a Korean browser context:
 npm run audit:playwright
 ```
 
-The audit stores HTML, full-page screenshots, and `audit.json` under `reports/playwright-audit/`. It records price candidates, structured offers, and conditional promotion markers separately; it does not select a tracking price or write observations to PostgreSQL.
+Reanalyze previously saved HTML without contacting AliExpress:
+
+```bash
+npm run audit:reanalyze
+```
+
+The audit stores HTML, full-page screenshots, and `audit.json` under `reports/playwright-audit/`. It scopes price evidence to the main product panel, keeps recommendation prices separate, detects soft-404 pages, and records conditional promotion text beside the displayed price. It does not select a tracking price or write observations to PostgreSQL.
+
+Displayed prices marked as new-member, coupon, welcome, or app-only are classified as non-comparable. Only an unqualified main-panel display price is eligible for a future daily history, and it remains an advertised product price rather than a guaranteed checkout price.
 
 The committed sample list is only a PoC input. It contains five recently indexed AliExpress product IDs found through public search because direct AliExpress browsing was unavailable in the development environment. It is not a claim that these are AliExpress's live top-five products. Future automatic discovery providers will replace this list.
 

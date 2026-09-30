@@ -32,12 +32,25 @@ try {
        (SELECT count(*)::text FROM candidate_discoveries) AS discovery_count,
        (SELECT count(*)::text FROM discovery_runs WHERE status = 'succeeded') AS successful_run_count`
   );
+  const observations = await pool.query<{
+    total_count: string;
+    comparable_count: string;
+    new_user_count: string;
+  }>(
+    `SELECT
+       count(*)::text AS total_count,
+       count(*) FILTER (WHERE sale_price IS NOT NULL)::text AS comparable_count,
+       count(*) FILTER (WHERE new_user_price IS NOT NULL)::text AS new_user_count
+     FROM price_observations
+     WHERE source = 'aliexpress-playwright' AND price_scope = 'product_display'`
+  );
   console.log({
     connected: true,
     serverVersion: version.rows[0]?.server_version,
     tables: found,
     missing,
-    discovery: discovery.rows[0]
+    discovery: discovery.rows[0],
+    playwrightObservations: observations.rows[0]
   });
   if (missing.length) process.exitCode = 1;
 } catch (error) {

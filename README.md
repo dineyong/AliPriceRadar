@@ -15,7 +15,7 @@ Discovery providers
           |
           v
 Product catalog -> Daily observations -> PostgreSQL history
-                                      -> Playwright sample audit (next phase)
+                                      -> Playwright evidence audit
 ```
 
 Watchlists are not the final product model. `DiscoveryProvider` allows automatic sources to continuously add thousands of candidates without changing the observation schema.
@@ -105,6 +105,18 @@ npm run discover:playwright -- config/discovery-seeds.json 100
 
 Each run is recorded in `discovery_runs`; each candidate records its seed, search rank, and run ID in `candidate_discoveries`. A local diagnostic copy is written to `reports/playwright-discovery/discovery.json` and remains excluded from Git. Search discovery is a fallback/proof of concept, not a guarantee of stable AliExpress access; Affiliate API discovery remains the preferred production source.
 
+## Playwright price collection
+
+Collect detailed page evidence for candidates that have not yet been observed today:
+
+```bash
+npm run collect:playwright -- 10
+```
+
+The argument is the maximum number of candidates, from 1 to 100. Collection uses a `ko-KR` browser context and stores one `product_display` observation per selected product. Only an unconditional main-panel KRW price is written to `sale_price` and becomes eligible for seven-day comparison. A detected new-member price is stored separately in `new_user_price`; coupon, app-only, unavailable, blocked, and unknown states retain their evidence in `raw_payload` without becoming a comparable price.
+
+Generated collection reports are written under `reports/playwright-collection/` and are excluded from Git. Running the command again on the same day selects other unobserved candidates rather than duplicating today's observations.
+
 ## Optional local PostgreSQL
 
 For isolated development only:
@@ -141,5 +153,5 @@ Operational database records, `.env`, logs, and generated reports are never comm
 
 - Discovery sources are replaceable providers; the fixed watchlist exists only for collection-stability tests.
 - Every observation preserves all returned price fields and its raw source payload.
-- Seven-day comparison requires an explicit price field. The code does not yet choose between `sale_price`, `target_sale_price`, `app_sale_price`, and `target_app_sale_price`.
+- Playwright's unconditional KRW product display is stored in `sale_price`. This does not decide which Affiliate API field (`sale_price`, `target_sale_price`, `app_sale_price`, or `target_app_sale_price`) will become the production tracking price after API access is available.
 - A baseline is the nearest comparable observation around seven days earlier, using the same product, price scope, country, and currency.

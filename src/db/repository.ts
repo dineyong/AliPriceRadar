@@ -59,6 +59,13 @@ export interface CollectionRunInput {
   metadata?: Record<string, unknown>;
 }
 
+export interface CollectionCandidate {
+  productId: string;
+  externalProductId: string;
+  title: string | null;
+  productUrl: string;
+}
+
 type Queryable = Pick<Pool | PoolClient, "query">;
 
 function nullable<T>(value: T | undefined): T | null {
@@ -87,6 +94,46 @@ export async function finishCollectionRun(
      WHERE id = $1`,
     [runId, status, nullable(errorSummary)]
   );
+}
+
+export async function selectCollectionCandidates(
+  db: Queryable,
+  options: { source: string; priceScope: string; limit: number }
+): Promise<CollectionCandidate[]> {
+  const result = await db.query<{
+    product_id: string;
+    external_product_id: string;
+    title: string | null;
+    product_url: string;
+  }>(
+    `SELECT
+       p.id::text AS product_id,
+       p.external_product_id,
+       p.title,
+       p.product_url
+     FROM products p
+     LEFT JOIN LATERAL (
+       SELECT max(po.observed_at) AS last_observed_at
+       FROM price_observations po
+       WHERE po.product_id = p.id AND po.price_scope = $2
+     ) observations ON true
+     WHERE p.source = $1
+       AND p.tracking_status = 'active'
+       AND p.product_url IS NOT NULL
+       AND (
+         observations.last_observed_at IS NULL
+         OR observations.last_observed_at < date_trunc('day', now())
+       )
+     ORDER BY observations.last_observed_at ASC NULLS FIRST, p.last_seen_at DESC
+     LIMIT $3`,
+    [options.source, options.priceScope, options.limit]
+  );
+  return result.rows.map((row) => ({
+    productId: row.product_id,
+    externalProductId: row.external_product_id,
+    title: row.title,
+    productUrl: row.product_url
+  }));
 }
 
 export async function beginDiscoveryRun(db: Queryable, input: DiscoveryRunInput): Promise<string> {

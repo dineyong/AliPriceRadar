@@ -17,6 +17,7 @@
     "audit:playwright": "tsx src/commands/audit-playwright.ts",
     "audit:reanalyze": "tsx src/commands/reanalyze-playwright.ts",
     "discover:playwright": "tsx src/commands/discover-playwright.ts",
+    "collect:playwright": "tsx src/commands/collect-playwright.ts",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },

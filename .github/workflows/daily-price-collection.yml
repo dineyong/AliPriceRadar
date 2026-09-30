@@ -1,0 +1,30 @@
+name: Daily AliExpress price collection
+
+on:
+  schedule:
+    - cron: "15 20 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-price-collection
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run db:migrate
+      - run: npm run discover:playwright -- config/discovery-seeds.json 100
+      - run: npm run collect:playwright -- 50
+      - run: npm run history:report

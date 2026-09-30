@@ -18,6 +18,8 @@
     "audit:reanalyze": "tsx src/commands/reanalyze-playwright.ts",
     "discover:playwright": "tsx src/commands/discover-playwright.ts",
     "collect:playwright": "tsx src/commands/collect-playwright.ts",
+    "history:report": "tsx src/commands/report-price-history.ts",
+    "daily:run": "npm run db:migrate && npm run discover:playwright -- config/discovery-seeds.json 100 && npm run collect:playwright -- 50 && npm run history:report",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },

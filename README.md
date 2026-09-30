@@ -117,6 +117,24 @@ The argument is the maximum number of candidates, from 1 to 100. Collection uses
 
 Generated collection reports are written under `reports/playwright-collection/` and are excluded from Git. Running the command again on the same day selects other unobserved candidates rather than duplicating today's observations.
 
+## History report and daily run
+
+Inspect daily coverage and the current seven-day price-drop ranking:
+
+```bash
+npm run history:report
+```
+
+Until observations have accumulated around seven days apart, the ranking is expected to be empty. The report uses only comparable `sale_price` observations from the same `KR` / `KRW` / `product_display` scope and writes a local copy to `reports/price-history/latest.json`.
+
+Run the complete local cycle with one command:
+
+```bash
+npm run daily:run
+```
+
+GitHub Actions also contains a scheduled workflow for 05:15 KST each day and a manual `workflow_dispatch` button. Before enabling it, add a repository Actions secret named `DATABASE_URL` under **Settings > Secrets and variables > Actions**. The workflow never receives AliExpress API credentials. Hosted runners can still encounter AliExpress bot checks, so workflow failures must remain visible and local collection stays available as a fallback.
+
 ## Optional local PostgreSQL
 
 For isolated development only:

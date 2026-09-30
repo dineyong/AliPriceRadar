@@ -1,0 +1,6 @@
+[
+  { "query": "phone stand", "label": "mobile-accessories" },
+  { "query": "camping light", "label": "camping" },
+  { "query": "car vacuum cleaner", "label": "automotive" },
+  { "query": "kitchen organizer", "label": "home-living" }
+]

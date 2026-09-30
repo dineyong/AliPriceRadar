@@ -27,13 +27,29 @@ CREATE TABLE IF NOT EXISTS products (
   UNIQUE (source, external_product_id)
 );
 
+CREATE TABLE IF NOT EXISTS discovery_runs (
+  id BIGSERIAL PRIMARY KEY,
+  source TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'running',
+  seeds JSONB NOT NULL DEFAULT '[]'::jsonb,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  discovered_count INTEGER NOT NULL DEFAULT 0,
+  error_summary TEXT
+);
+
 CREATE TABLE IF NOT EXISTS candidate_discoveries (
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL REFERENCES products(id),
+  discovery_run_id BIGINT REFERENCES discovery_runs(id),
   discovered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   discovery_method TEXT NOT NULL,
   discovery_context JSONB NOT NULL DEFAULT '{}'::jsonb
 );
+
+ALTER TABLE candidate_discoveries
+  ADD COLUMN IF NOT EXISTS discovery_run_id BIGINT REFERENCES discovery_runs(id);
 
 CREATE INDEX IF NOT EXISTS candidate_discoveries_method_time_idx
   ON candidate_discoveries (discovery_method, discovered_at DESC);
@@ -67,4 +83,3 @@ CREATE TABLE IF NOT EXISTS price_observations (
 
 CREATE INDEX IF NOT EXISTS price_observations_product_time_idx
   ON price_observations (product_id, observed_at DESC);
-

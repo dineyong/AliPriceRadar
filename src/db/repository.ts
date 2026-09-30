@@ -15,9 +15,16 @@ export interface ProductInput {
 
 export interface DiscoveryInput {
   productId: string;
+  discoveryRunId?: string;
   discoveryMethod: string;
   discoveryContext: Record<string, unknown>;
   discoveredAt?: Date;
+}
+
+export interface DiscoveryRunInput {
+  source: string;
+  seeds: string[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface PriceObservationInput {
@@ -82,6 +89,31 @@ export async function finishCollectionRun(
   );
 }
 
+export async function beginDiscoveryRun(db: Queryable, input: DiscoveryRunInput): Promise<string> {
+  const result = await db.query<{ id: string }>(
+    `INSERT INTO discovery_runs (source, seeds, metadata)
+     VALUES ($1, $2::jsonb, $3::jsonb)
+     RETURNING id::text`,
+    [input.source, JSON.stringify(input.seeds), JSON.stringify(input.metadata ?? {})]
+  );
+  return result.rows[0]!.id;
+}
+
+export async function finishDiscoveryRun(
+  db: Queryable,
+  runId: string,
+  status: "succeeded" | "failed",
+  discoveredCount: number,
+  errorSummary?: string
+): Promise<void> {
+  await db.query(
+    `UPDATE discovery_runs
+     SET finished_at = now(), status = $2, discovered_count = $3, error_summary = $4
+     WHERE id = $1`,
+    [runId, status, discoveredCount, nullable(errorSummary)]
+  );
+}
+
 export async function upsertProduct(db: Queryable, input: ProductInput): Promise<string> {
   const result = await db.query<{ id: string }>(
     `INSERT INTO products (
@@ -117,10 +149,11 @@ export async function upsertProduct(db: Queryable, input: ProductInput): Promise
 export async function recordDiscovery(db: Queryable, input: DiscoveryInput): Promise<void> {
   await db.query(
     `INSERT INTO candidate_discoveries (
-       product_id, discovered_at, discovery_method, discovery_context
-     ) VALUES ($1, COALESCE($2, now()), $3, $4::jsonb)`,
+       product_id, discovery_run_id, discovered_at, discovery_method, discovery_context
+     ) VALUES ($1, $2, COALESCE($3, now()), $4, $5::jsonb)`,
     [
       input.productId,
+      input.discoveryRunId ?? null,
       input.discoveredAt ?? null,
       input.discoveryMethod,
       JSON.stringify(input.discoveryContext)
@@ -172,4 +205,3 @@ export async function recordPriceObservation(db: Queryable, input: PriceObservat
   );
   return result.rows[0]!.id;
 }
-

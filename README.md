@@ -10,6 +10,7 @@ AliExpress 상품 후보를 자동 발견하고, 동일한 시장 조건에서 �
 Discovery providers
   - Affiliate search / hot products (planned primary source)
   - AliCouponFind feed (planned integration)
+  - Playwright search discovery (API-independent PoC)
   - Fixed watchlist (PoC stability test only)
           |
           v
@@ -86,6 +87,23 @@ The audit stores HTML, full-page screenshots, and `audit.json` under `reports/pl
 Displayed prices marked as new-member, coupon, welcome, or app-only are classified as non-comparable. Only an unqualified main-panel display price is eligible for a future daily history, and it remains an advertised product price rather than a guaranteed checkout price.
 
 The committed sample list is only a PoC input. It contains five recently indexed AliExpress product IDs found through public search because direct AliExpress browsing was unavailable in the development environment. It is not a claim that these are AliExpress's live top-five products. Future automatic discovery providers will replace this list.
+
+## Automatic candidate discovery
+
+The API-independent discovery PoC searches the queries in `config/discovery-seeds.json`, extracts stable AliExpress product IDs from result links, removes duplicates across seeds, and stores both the products and their discovery provenance in PostgreSQL:
+
+```bash
+npm run db:migrate
+npm run discover:playwright
+```
+
+The default run stores up to 50 unique candidates. To use another seed file or limit:
+
+```bash
+npm run discover:playwright -- config/discovery-seeds.json 100
+```
+
+Each run is recorded in `discovery_runs`; each candidate records its seed, search rank, and run ID in `candidate_discoveries`. A local diagnostic copy is written to `reports/playwright-discovery/discovery.json` and remains excluded from Git. Search discovery is a fallback/proof of concept, not a guarantee of stable AliExpress access; Affiliate API discovery remains the preferred production source.
 
 ## Optional local PostgreSQL
 

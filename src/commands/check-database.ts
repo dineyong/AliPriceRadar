@@ -4,6 +4,7 @@ import { createPool } from "../db/pool.js";
 const expectedTables = [
   "candidate_discoveries",
   "collection_runs",
+  "discovery_runs",
   "price_observations",
   "products"
 ];
@@ -21,7 +22,23 @@ try {
   );
   const found = tables.rows.map((row) => row.tablename);
   const missing = expectedTables.filter((table) => !found.includes(table));
-  console.log({ connected: true, serverVersion: version.rows[0]?.server_version, tables: found, missing });
+  const discovery = await pool.query<{
+    product_count: string;
+    discovery_count: string;
+    successful_run_count: string;
+  }>(
+    `SELECT
+       (SELECT count(*)::text FROM products) AS product_count,
+       (SELECT count(*)::text FROM candidate_discoveries) AS discovery_count,
+       (SELECT count(*)::text FROM discovery_runs WHERE status = 'succeeded') AS successful_run_count`
+  );
+  console.log({
+    connected: true,
+    serverVersion: version.rows[0]?.server_version,
+    tables: found,
+    missing,
+    discovery: discovery.rows[0]
+  });
   if (missing.length) process.exitCode = 1;
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
@@ -30,4 +47,3 @@ try {
 } finally {
   await pool.end();
 }
-

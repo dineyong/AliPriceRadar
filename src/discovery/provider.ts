@@ -1,6 +1,9 @@
 export interface DiscoveredProduct {
   externalProductId: string;
   source: string;
+  title?: string;
+  productUrl?: string;
+  mainImageUrl?: string;
   discoveredAt: Date;
   discoveryMethod: string;
   discoveryContext: Record<string, unknown>;
@@ -27,4 +30,3 @@ export class FixedWatchlistProvider implements DiscoveryProvider {
     }));
   }
 }
-

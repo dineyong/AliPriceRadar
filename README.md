@@ -48,7 +48,10 @@ Create the schema and check the database connection independently of AliExpress 
 ```bash
 npm run db:migrate
 npm run db:check
+npm run db:smoke
 ```
+
+`db:smoke` inserts five temporary products and eight daily observations inside a transaction, verifies the seven-day drop ranking, and rolls the transaction back. No smoke-test rows remain in PostgreSQL.
 
 After Affiliate credentials are available, run the five-product API probe:
 

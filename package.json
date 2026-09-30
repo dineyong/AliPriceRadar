@@ -11,6 +11,7 @@
   "scripts": {
     "db:migrate": "tsx src/commands/migrate.ts",
     "db:check": "tsx src/commands/check-database.ts",
+    "db:smoke": "tsx src/commands/smoke-price-history.ts",
     "api:probe": "tsx src/commands/probe-api.ts",
     "check": "tsc --noEmit",
     "test": "vitest run"

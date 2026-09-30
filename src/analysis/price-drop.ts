@@ -1,4 +1,4 @@
-import type { Pool } from "pg";
+import type { PoolClient } from "pg";
 
 export const comparablePriceFields = [
   "sale_price",
@@ -30,7 +30,7 @@ export function calculateDrop(currentPrice: number, baselinePrice: number) {
 }
 
 export async function findSevenDayPriceDrops(
-  pool: Pool,
+  pool: Pick<PoolClient, "query">,
   field: ComparablePriceField,
   options: { country: string; currency: string; limit?: number; toleranceHours?: number }
 ): Promise<PriceDrop[]> {
@@ -98,4 +98,3 @@ export async function findSevenDayPriceDrops(
     };
   });
 }
-

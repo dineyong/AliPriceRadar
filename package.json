@@ -10,6 +10,7 @@
   },
   "scripts": {
     "db:migrate": "tsx src/commands/migrate.ts",
+    "db:check": "tsx src/commands/check-database.ts",
     "api:probe": "tsx src/commands/probe-api.ts",
     "check": "tsc --noEmit",
     "test": "vitest run"

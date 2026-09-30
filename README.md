@@ -43,10 +43,16 @@ Copy-Item .env.example .env
 
 Fill `.env` with the same `DATABASE_URL` and AliExpress credentials on each computer. Never commit `.env`.
 
-Create the schema and run the five-product API probe:
+Create the schema and check the database connection independently of AliExpress credentials:
 
 ```bash
 npm run db:migrate
+npm run db:check
+```
+
+After Affiliate credentials are available, run the five-product API probe:
+
+```bash
 npm run api:probe
 ```
 
@@ -84,3 +90,9 @@ git push
 
 Operational database records, `.env`, logs, and generated reports are never committed.
 
+## Current price-history boundary
+
+- Discovery sources are replaceable providers; the fixed watchlist exists only for collection-stability tests.
+- Every observation preserves all returned price fields and its raw source payload.
+- Seven-day comparison requires an explicit price field. The code does not yet choose between `sale_price`, `target_sale_price`, `app_sale_price`, and `target_app_sale_price`.
+- A baseline is the nearest comparable observation around seven days earlier, using the same product, price scope, country, and currency.

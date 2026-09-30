@@ -61,6 +61,24 @@ npm run api:probe
 
 The probe tests authentication, searches five real products, requests their details under `KR` / `KRW`, prints the price fields, and writes the full raw response to `reports/api-probe.json`. Reports are ignored by Git.
 
+## Playwright sample audit
+
+Install the pinned Chromium build once on each computer:
+
+```bash
+npm run playwright:install
+```
+
+Then audit the five public-search samples in a Korean browser context:
+
+```bash
+npm run audit:playwright
+```
+
+The audit stores HTML, full-page screenshots, and `audit.json` under `reports/playwright-audit/`. It records price candidates, structured offers, and conditional promotion markers separately; it does not select a tracking price or write observations to PostgreSQL.
+
+The committed sample list is only a PoC input. It contains five recently indexed AliExpress product IDs found through public search because direct AliExpress browsing was unavailable in the development environment. It is not a claim that these are AliExpress's live top-five products. Future automatic discovery providers will replace this list.
+
 ## Optional local PostgreSQL
 
 For isolated development only:

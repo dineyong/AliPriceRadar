@@ -13,6 +13,8 @@
     "db:check": "tsx src/commands/check-database.ts",
     "db:smoke": "tsx src/commands/smoke-price-history.ts",
     "api:probe": "tsx src/commands/probe-api.ts",
+    "playwright:install": "playwright install chromium",
+    "audit:playwright": "tsx src/commands/audit-playwright.ts",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -24,6 +26,7 @@
   "devDependencies": {
     "@types/node": "24.3.1",
     "@types/pg": "8.15.5",
+    "playwright": "1.63.0",
     "tsx": "4.20.5",
     "typescript": "5.9.2",
     "vitest": "5.0.1"

@@ -61,6 +61,8 @@ function findProducts(value: unknown): AffiliateProduct[] {
 export class AliExpressAffiliateClient {
   constructor(private readonly options: AliExpressClientOptions) {}
 
+  get trackingId(): string { return this.options.trackingId; }
+
   async call(method: string, businessParams: Record<string, string>): Promise<ApiEnvelope> {
     const params: Record<string, string> = {
       app_key: this.options.appKey,
@@ -83,7 +85,7 @@ export class AliExpressAffiliateClient {
     });
     const body = (await response.json()) as ApiEnvelope;
     if (!response.ok || "error_response" in body) {
-      throw new Error(`AliExpress API error (${response.status}): ${JSON.stringify(body)}`);
+      throw new Error(`ALIEXPRESS_API_ERROR_HTTP_${response.status}`);
     }
     return body;
   }

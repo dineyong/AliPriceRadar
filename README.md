@@ -173,3 +173,11 @@ Operational database records, `.env`, logs, and generated reports are never comm
 - Every observation preserves all returned price fields and its raw source payload.
 - Playwright's unconditional KRW product display is stored in `sale_price`. This does not decide which Affiliate API field (`sale_price`, `target_sale_price`, `app_sale_price`, or `target_app_sale_price`) will become the production tracking price after API access is available.
 - A baseline is the nearest comparable observation around seven days earlier, using the same product, price scope, country, and currency.
+
+## Single-product Threads MVP
+
+`npm run threads:mvp -- check` verifies credential presence without API calls.
+`npm run threads:mvp -- demo` produces a non-publishable synthetic draft.
+`npm run threads:mvp -- prepare --product-id PRODUCT_ID` prepares one real product after Affiliate credentials are configured. Nothing is posted by default.
+
+See [the MVP runbook](docs/threads-single-product-mvp.md) for personal account requirements, explicit reviewed-hash publication, private result storage and failure/duplicate guards. No database migration is needed for the first post. Live acceptance is still pending; Windows publication requires separate ACL verification.
